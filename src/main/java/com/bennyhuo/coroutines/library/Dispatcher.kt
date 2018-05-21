@@ -9,7 +9,7 @@ interface Dispatcher {
     fun dispatch(block: ()->Unit)
 }
 
-object CommonPoolDispatcher: Dispatcher {
+private object CommonPoolDispatcher: Dispatcher {
     private val executor = Executors.newFixedThreadPool(2 * Runtime.getRuntime().availableProcessors()) { runnable ->
         Thread(runnable, "CommonPool").apply { isDaemon = true }
     }
@@ -22,7 +22,7 @@ object CommonPoolDispatcher: Dispatcher {
 object CommonPool: DispatcherContext(CommonPoolDispatcher)
 
 open class DispatcherContext(private val dispatcher: Dispatcher) : AbstractCoroutineContextElement(ContinuationInterceptor), ContinuationInterceptor {
-    override fun <T> interceptContinuation(continuation: Continuation<T>)
+    override fun <T> interceptContinuation(continuation: Continuation<T>): Continuation<T>
             = DispatchedContinuation(//下面这段代码是要查找其他拦截器，并保证能调用它们的拦截方法
             continuation.context.fold(continuation, { cont, element ->
                 if (element != this && element is ContinuationInterceptor)
@@ -30,7 +30,7 @@ open class DispatcherContext(private val dispatcher: Dispatcher) : AbstractCorou
             }), dispatcher)
 }
 
-class DispatchedContinuation<T>(val delegate: Continuation<T>, val dispatcher: Dispatcher) : Continuation<T>{
+private class DispatchedContinuation<T>(val delegate: Continuation<T>, val dispatcher: Dispatcher) : Continuation<T>{
     override val context = delegate.context
 
     override fun resume(value: T) {
