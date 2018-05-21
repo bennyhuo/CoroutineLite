@@ -1,6 +1,5 @@
 package com.bennyhuo.coroutines.library
 
-import com.bennyhuo.coroutines.utils.log
 import java.util.concurrent.LinkedBlockingDeque
 import kotlin.coroutines.experimental.CoroutineContext
 
@@ -17,8 +16,7 @@ class BlockingCoroutine<T>(context: CoroutineContext, private val eventQueue: Li
 
     fun joinBlocking() {
         while (!isCompleted) {
-            val task = eventQueue.take()
-            task()
+            eventQueue.take().invoke()
         }
     }
 }
