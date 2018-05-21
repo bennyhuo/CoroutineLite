@@ -1,9 +1,9 @@
 package com.bennyhuo.coroutines.sample
 
-import com.bennyhuo.coroutines.library.async
-import com.bennyhuo.coroutines.library.delay
-import com.bennyhuo.coroutines.library.launch
-import com.bennyhuo.coroutines.library.runBlocking
+import com.bennyhuo.coroutines.lite.async
+import com.bennyhuo.coroutines.lite.delay
+import com.bennyhuo.coroutines.lite.launch
+import com.bennyhuo.coroutines.lite.runBlocking
 import com.bennyhuo.coroutines.utils.log
 
 fun main(args: Array<String>) = runBlocking {

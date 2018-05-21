@@ -1,4 +1,4 @@
-package com.bennyhuo.coroutines.library
+package com.bennyhuo.coroutines.lite
 
 import android.os.Handler
 import android.os.Looper

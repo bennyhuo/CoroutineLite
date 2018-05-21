@@ -1,8 +1,6 @@
-package com.bennyhuo.coroutines.library
+package com.bennyhuo.coroutines.lite
 
-import kotlin.coroutines.experimental.ContinuationInterceptor
 import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.EmptyCoroutineContext
 
 /**
  * Created by benny on 5/20/17.

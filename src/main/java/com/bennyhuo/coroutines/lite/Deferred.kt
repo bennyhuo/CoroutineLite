@@ -1,4 +1,4 @@
-package com.bennyhuo.coroutines.library
+package com.bennyhuo.coroutines.lite
 
 import kotlin.coroutines.experimental.CoroutineContext
 import kotlin.coroutines.experimental.suspendCoroutine

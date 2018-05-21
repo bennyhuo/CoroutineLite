@@ -1,4 +1,4 @@
-package com.bennyhuo.coroutines.library
+package com.bennyhuo.coroutines.lite
 
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
