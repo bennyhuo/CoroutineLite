@@ -48,23 +48,13 @@ abstract class AbstractCoroutine<T>(override val context: CoroutineContext, bloc
         val currentState = state.get()
         when (currentState) {
             is State.InComplete -> return joinSuspend()
-            is State.Complete<*> ->
-                when {
-                    currentState.value == null -> throw currentState.exception!!
-                    else -> return
-                }
+            is State.Complete<*> -> return
             else -> throw IllegalStateException("Invalid State: $currentState")
         }
     }
 
     private suspend fun joinSuspend() = suspendCoroutine<Unit> { continuation ->
-        doOnCompleted { t, throwable ->
-            when {
-                t != null -> continuation.resume(Unit)
-                throwable != null -> continuation.resumeWithException(throwable)
-                else -> throw IllegalStateException("Won't happen.")
-            }
-        }
+        doOnCompleted { t, throwable -> continuation.resume(Unit) }
     }
 
     protected fun doOnCompleted(block: (T?, Throwable?) -> Unit) {
