@@ -1,7 +1,9 @@
 package com.bennyhuo.coroutines.lite
 
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Created by benny on 2018/5/20.

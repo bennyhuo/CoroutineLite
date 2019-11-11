@@ -1,10 +1,11 @@
 package com.bennyhuo.coroutines.lite
 
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.startCoroutine
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.startCoroutine
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
 
 typealias OnComplete<T> = (T?, Throwable?) -> Unit
 
@@ -26,20 +27,19 @@ abstract class AbstractCoroutine<T>(override val context: CoroutineContext, bloc
     val isCompleted
         get() = state.get() is State.Complete<*>
 
-    override fun resume(value: T) {
-        val currentState = state.getAndSet(State.Complete(value))
-        when (currentState) {
-            is State.CompleteHandler<*> -> {
-                (currentState as State.CompleteHandler<T>).handler(value, null)
-            }
-        }
-    }
 
-    override fun resumeWithException(exception: Throwable) {
-        val currentState = state.getAndSet(State.Complete<T>(null, exception))
-        when (currentState) {
-            is State.CompleteHandler<*> -> {
-                (currentState as State.CompleteHandler<T>).handler(null, exception)
+    override fun resumeWith(result: Result<T>) {
+        result.onSuccess {
+            when (val currentState = state.getAndSet(State.Complete(it))) {
+                is State.CompleteHandler<*> -> {
+                    (currentState as State.CompleteHandler<T>).handler(it, null)
+                }
+            }
+        }.onFailure {
+            when (val currentState = state.getAndSet(State.Complete<T>(null, it))) {
+                is State.CompleteHandler<*> -> {
+                    (currentState as State.CompleteHandler<T>).handler(null, it)
+                }
             }
         }
     }

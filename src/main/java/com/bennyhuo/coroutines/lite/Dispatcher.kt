@@ -1,9 +1,11 @@
 package com.bennyhuo.coroutines.lite
 
 import java.util.concurrent.Executors
-import kotlin.coroutines.experimental.AbstractCoroutineContextElement
-import kotlin.coroutines.experimental.Continuation
-import kotlin.coroutines.experimental.ContinuationInterceptor
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.ContinuationInterceptor
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 interface Dispatcher {
     fun dispatch(block: ()->Unit)
@@ -33,15 +35,9 @@ open class DispatcherContext(private val dispatcher: Dispatcher) : AbstractCorou
 private class DispatchedContinuation<T>(val delegate: Continuation<T>, val dispatcher: Dispatcher) : Continuation<T>{
     override val context = delegate.context
 
-    override fun resume(value: T) {
+    override fun resumeWith(result: Result<T>) {
         dispatcher.dispatch {
-            delegate.resume(value)
-        }
-    }
-
-    override fun resumeWithException(exception: Throwable) {
-        dispatcher.dispatch {
-            delegate.resumeWithException(exception)
+            delegate.resumeWith(result)
         }
     }
 }

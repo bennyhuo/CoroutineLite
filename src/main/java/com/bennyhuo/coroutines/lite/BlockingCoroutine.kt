@@ -1,7 +1,7 @@
 package com.bennyhuo.coroutines.lite
 
 import java.util.concurrent.LinkedBlockingDeque
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 
 typealias EventTask = () -> Unit
 

@@ -2,7 +2,8 @@ package com.bennyhuo.coroutines.lite
 
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.experimental.suspendCoroutine
+import kotlin.coroutines.suspendCoroutine
+import kotlin.coroutines.resume
 
 /**
  * Created by benny on 2018/5/20.
