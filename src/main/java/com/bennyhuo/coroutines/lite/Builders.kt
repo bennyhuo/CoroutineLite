@@ -5,7 +5,7 @@ import kotlin.coroutines.CoroutineContext
 /**
  * Created by benny on 5/20/17.
  */
-fun launch(context: CoroutineContext = CommonPool, block: suspend () -> Unit): AbstractCoroutine<Unit> {
+fun launch(context: CoroutineContext = CommonPool, block: suspend () -> Unit): Job {
     return StandaloneCoroutine(context, block)
 }
 

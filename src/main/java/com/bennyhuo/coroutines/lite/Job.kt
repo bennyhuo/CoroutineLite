@@ -12,9 +12,13 @@ interface Job : CoroutineContext.Element {
 
     override val key: CoroutineContext.Key<*> get() = Job
 
+    val isActive: Boolean
+
     fun invokeOnCancel(cancelHandler: CancelHandler)
 
     fun invokeOnCompletion(completionHandler: CompletionHandler)
 
     fun cancel()
+
+    suspend fun join()
 }

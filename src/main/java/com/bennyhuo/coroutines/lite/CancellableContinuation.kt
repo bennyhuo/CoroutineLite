@@ -26,6 +26,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         state.updateAndGet { prev ->
             when (prev) {
                 CancelState.InComplete -> {
+                    continuation.resumeWith(result)
                     CancelState.Complete(result.getOrNull(), result.exceptionOrNull())
                 }
                 CancelState.Cancelled -> {
@@ -39,6 +40,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
     }
 
     fun getResult(): Any? {
+        installCancelHandler()
         return when (val currentState = state.get()) {
             CancelState.InComplete -> COROUTINE_SUSPENDED
             CancelState.Cancelled -> throw CancellationException("Continuation is cancelled.")

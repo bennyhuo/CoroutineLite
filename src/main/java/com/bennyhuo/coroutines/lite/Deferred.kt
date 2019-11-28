@@ -13,9 +13,10 @@ class Deferred<T>(context: CoroutineContext, block: suspend () -> T) : AbstractC
     suspend fun await(): T {
         val currentState = state.get()
         return when (currentState) {
-            is CoroutineState.InComplete -> awaitSuspend()
-            is CoroutineState.Complete<*> -> (currentState.value as T?) ?: throw currentState.exception!!
-            else -> throw IllegalStateException("Invalid State: $currentState")
+            CoroutineState.InComplete,
+            is CoroutineState.CompleteHandler<*> -> awaitSuspend()
+            is CoroutineState.Complete<*> -> (currentState.value as T?)
+                    ?: throw currentState.exception!!
         }
     }
 

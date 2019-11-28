@@ -1,11 +1,11 @@
 package com.bennyhuo.coroutines.lite
 
+import com.bennyhuo.coroutines.utils.log
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.startCoroutine
-import kotlin.coroutines.suspendCoroutine
 import kotlin.coroutines.resume
 
 typealias OnComplete<T> = (T?, Throwable?) -> Unit
@@ -17,8 +17,15 @@ sealed class CoroutineState {
 
         private val handlers = CopyOnWriteArrayList<OnComplete<T>>()
 
+        @Volatile var isCancelling = false
+            private set
+
         fun invokeOnComplete(onComplete: OnComplete<T>) {
             handlers += onComplete
+        }
+
+        fun makeCancelling() {
+            this.isCancelling = true
         }
 
         fun doOnCompleted(value: T?, throwable: Throwable?) {
@@ -29,17 +36,27 @@ sealed class CoroutineState {
     }
 }
 
-abstract class AbstractCoroutine<T>(override val context: CoroutineContext, block: suspend () -> T) : Job, Continuation<T> {
+abstract class AbstractCoroutine<T>(context: CoroutineContext, block: suspend () -> T) : Job, Continuation<T> {
 
     protected val state = AtomicReference<CoroutineState>()
 
+    override val context: CoroutineContext
+
     init {
         state.set(CoroutineState.InComplete)
+        this.context = context + this
         block.startCoroutine(this)
     }
 
     val isCompleted
         get() = state.get() is CoroutineState.Complete<*>
+
+    override val isActive: Boolean
+        get() = when(val currentState = state.get()){
+            CoroutineState.InComplete -> true
+            is CoroutineState.Complete<*> -> false
+            is CoroutineState.CompleteHandler<*> -> !currentState.isCancelling
+        }
 
     private val cancelHandlers = CopyOnWriteArrayList<CancelHandler>()
 
@@ -51,7 +68,11 @@ abstract class AbstractCoroutine<T>(override val context: CoroutineContext, bloc
                 }
                 is CoroutineState.CompleteHandler<*> -> {
                     (prev as CoroutineState.CompleteHandler<T>).doOnCompleted(result.getOrNull(), result.exceptionOrNull())
-                    CoroutineState.Complete(result.getOrNull(), result.exceptionOrNull())
+                    if(prev.isCancelling){
+                        CoroutineState.Complete(null, CancellationException("Result arrived, but cancelled already."))
+                    } else {
+                        CoroutineState.Complete(result.getOrNull(), result.exceptionOrNull())
+                    }
                 }
                 is CoroutineState.Complete<*> -> {
                     throw IllegalStateException("Already completed!")
@@ -62,11 +83,11 @@ abstract class AbstractCoroutine<T>(override val context: CoroutineContext, bloc
         (newState as CoroutineState.Complete<T>).exception?.let(this::handleException)
     }
 
-    suspend fun join() {
-        when (val currentState = state.get()) {
-            is CoroutineState.InComplete -> return joinSuspend()
+    override suspend fun join() {
+        when (state.get()) {
+            CoroutineState.InComplete,
+            is CoroutineState.CompleteHandler<*> -> return joinSuspend()
             is CoroutineState.Complete<*> -> return
-            else -> throw IllegalStateException("Invalid State: $currentState")
         }
     }
 
@@ -77,17 +98,17 @@ abstract class AbstractCoroutine<T>(override val context: CoroutineContext, bloc
     override fun cancel() {
         val newState = state.updateAndGet { prev ->
             when (prev) {
-                CoroutineState.InComplete,
+                CoroutineState.InComplete -> {
+                    CoroutineState.CompleteHandler<T>().also { it.makeCancelling() }
+                }
                 is CoroutineState.CompleteHandler<*> -> {
-                    CoroutineState.Complete<T>(null, CancellationException("Coroutine is cancelled."))
+                    prev.also { it.makeCancelling() }
                 }
-                else -> {
-                    prev
-                }
+                is CoroutineState.Complete<*> -> prev
             }
         }
 
-        if (newState is CoroutineState.Complete<*> && newState.exception is CancellationException) {
+        if (newState is CoroutineState.CompleteHandler<*> && newState.isCancelling) {
             cancelHandlers.forEach(CancelHandler::invoke)
         }
     }
@@ -112,7 +133,16 @@ abstract class AbstractCoroutine<T>(override val context: CoroutineContext, bloc
     }
 
     override fun invokeOnCancel(cancelHandler: CancelHandler) {
-        cancelHandlers += cancelHandler
+        when(val currentState = state.get()){
+            CoroutineState.InComplete -> cancelHandlers += cancelHandler
+            is CoroutineState.CompleteHandler<*> -> {
+                if(currentState.isCancelling) {
+                    cancelHandler()
+                } else {
+                    cancelHandlers += cancelHandler
+                }
+            }
+        }
     }
 
     override fun invokeOnCompletion(completionHandler: CompletionHandler) {

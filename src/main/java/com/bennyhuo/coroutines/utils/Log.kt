@@ -12,4 +12,4 @@ val now = {
     dateFormat.format(Date(System.currentTimeMillis()))
 }
 
-fun log(msg: Any?) = println("${now()} [${Thread.currentThread().name}] $msg")
+fun log(vararg msg: Any?) = println("${now()} [${Thread.currentThread().name}] ${msg.joinToString(" ")}")
