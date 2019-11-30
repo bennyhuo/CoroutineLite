@@ -1,21 +1,28 @@
 package com.bennyhuo.coroutines.lite
 
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.startCoroutine
 
 /**
  * Created by benny on 5/20/17.
  */
-fun launch(context: CoroutineContext = CommonPool, block: suspend () -> Unit): Job {
-    return StandaloneCoroutine(context, block)
+fun CoroutineScope.launch(context: CoroutineContext = CommonPool, block: suspend CoroutineScope.() -> Unit): Job {
+    val completion = StandaloneCoroutine(context)
+    block.startCoroutine(completion, completion)
+    return completion
 }
 
-fun <T> async(context: CoroutineContext = CommonPool, block: suspend () -> T): Deferred<T> {
-    return Deferred(context, block)
+fun <T> CoroutineScope.async(context: CoroutineContext = CommonPool, block: suspend CoroutineScope.() -> T): Deferred<T> {
+    val completion = Deferred<T>(context)
+    block.startCoroutine(completion, completion)
+    return completion
 }
 
-fun runBlocking(block: suspend () -> Unit) {
+fun <T> runBlocking(block: suspend CoroutineScope.() -> T): T {
     val eventQueue = BlockingQueueDispatcher()
     val context = DispatcherContext(eventQueue)
-    BlockingCoroutine(context, eventQueue, block).joinBlocking()
+    val completion = BlockingCoroutine<T>(context, eventQueue)
+    block.startCoroutine(completion, completion)
+    return completion.joinBlocking()
 }
 

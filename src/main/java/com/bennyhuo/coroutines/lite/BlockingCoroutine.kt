@@ -12,11 +12,14 @@ class BlockingQueueDispatcher : LinkedBlockingDeque<EventTask>(), Dispatcher {
     }
 }
 
-class BlockingCoroutine<T>(context: CoroutineContext, private val eventQueue: LinkedBlockingDeque<EventTask>, block: suspend () -> T) : AbstractCoroutine<T>(context, block) {
+class BlockingCoroutine<T>(context: CoroutineContext, private val eventQueue: LinkedBlockingDeque<EventTask>) : AbstractCoroutine<T>(context) {
 
-    fun joinBlocking() {
+    fun joinBlocking(): T {
         while (!isCompleted) {
             eventQueue.take().invoke()
+        }
+        return (state.get() as CoroutineState.Complete<T>).let {
+            it.value ?: throw it.exception!!
         }
     }
 }

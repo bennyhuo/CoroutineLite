@@ -2,10 +2,10 @@ package com.bennyhuo.coroutines.lite
 
 import kotlin.coroutines.CoroutineContext
 
-typealias CompletionHandler = () -> Unit
+typealias OnComplete = () -> Unit
 
 typealias CancellationException = java.util.concurrent.CancellationException
-typealias CancelHandler = () -> Unit
+typealias OnCancel = () -> Unit
 
 interface Job : CoroutineContext.Element {
     companion object Key : CoroutineContext.Key<Job>
@@ -14,11 +14,13 @@ interface Job : CoroutineContext.Element {
 
     val isActive: Boolean
 
-    fun invokeOnCancel(cancelHandler: CancelHandler)
+    fun invokeOnCancel(onCancel: OnCancel): Disposable
 
-    fun invokeOnCompletion(completionHandler: CompletionHandler)
+    fun invokeOnCompletion(onComplete: OnComplete): Disposable
 
     fun cancel()
+
+    fun remove(disposable: Disposable)
 
     suspend fun join()
 }

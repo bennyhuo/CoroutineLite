@@ -1,78 +1,140 @@
 package com.bennyhuo.coroutines.lite
 
 import com.bennyhuo.coroutines.utils.log
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.startCoroutine
 import kotlin.coroutines.resume
 
-typealias OnComplete<T> = (T?, Throwable?) -> Unit
+typealias OnCompleteT<T> = (T?, Throwable?) -> Unit
 
-sealed class CoroutineState {
-    object InComplete : CoroutineState()
-    class Complete<T>(val value: T? = null, val exception: Throwable? = null) : CoroutineState()
-    class CompleteHandler<T> : CoroutineState() {
+interface Disposable {
+    fun dispose()
+}
 
-        private val handlers = CopyOnWriteArrayList<OnComplete<T>>()
+class CompletionHandlerDisposable<T>(val job: Job, val onComplete: OnCompleteT<T>): Disposable{
+    override fun dispose() {
+        job.remove(this)
+    }
+}
 
-        @Volatile var isCancelling = false
-            private set
+class CancellationHandlerDisposable(val job: Job, val onCancel: OnCancel): Disposable{
+    override fun dispose() {
+        job.remove(this)
+    }
+}
 
-        fun invokeOnComplete(onComplete: OnComplete<T>) {
-            handlers += onComplete
-        }
+sealed class DisposableList {
+    object Nil: DisposableList()
+    class Cons(val head: Disposable, val tail: DisposableList): DisposableList()
+}
 
-        fun makeCancelling() {
-            this.isCancelling = true
-        }
-
-        fun doOnCompleted(value: T?, throwable: Throwable?) {
-            handlers.forEach {
-                it.invoke(value, throwable)
+tailrec fun DisposableList.remove(disposable: Disposable): DisposableList {
+    return when(this){
+        DisposableList.Nil -> this
+        is DisposableList.Cons -> {
+            if(head == disposable){
+                return tail
+            } else {
+                tail.remove(disposable)
             }
         }
     }
 }
 
-abstract class AbstractCoroutine<T>(context: CoroutineContext, block: suspend () -> T) : Job, Continuation<T> {
+tailrec fun DisposableList.forEach(action: (Disposable) -> Unit): Unit = when(this){
+    DisposableList.Nil ->Unit
+    is DisposableList.Cons -> {
+        action(this.head)
+        this.tail.forEach(action)
+    }
+}
+
+inline fun <reified T: Disposable> DisposableList.loopOn(crossinline action: (T) -> Unit) = forEach {
+    when(it){
+        is T -> action(it)
+    }
+}
+
+sealed class CoroutineState {
+    private var disposableList: DisposableList = DisposableList.Nil
+
+    fun from(state: CoroutineState): CoroutineState {
+        this.disposableList = state.disposableList
+        return this
+    }
+
+    fun with(disposable: Disposable): CoroutineState {
+        this.disposableList = DisposableList.Cons(disposable, this.disposableList)
+        return this
+    }
+
+    fun without(disposable: Disposable): CoroutineState {
+        this.disposableList = this.disposableList.remove(disposable)
+        return this
+    }
+
+    fun <T> notifyCompletion(result: Result<T>) {
+        this.disposableList.loopOn<CompletionHandlerDisposable<T>> {
+            it.onComplete(result.getOrNull(), result.exceptionOrNull())
+        }
+    }
+
+    fun notifyCancellation() {
+        disposableList.loopOn<CancellationHandlerDisposable> {
+            it.onCancel()
+        }
+    }
+
+    fun clear() {
+        this.disposableList = DisposableList.Nil
+    }
+
+    class InComplete : CoroutineState()
+    class Cancelling: CoroutineState()
+    class Complete<T>(val value: T? = null, val exception: Throwable? = null) : CoroutineState()
+}
+
+abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuation<T>, CoroutineScope {
 
     protected val state = AtomicReference<CoroutineState>()
 
     override val context: CoroutineContext
 
+    override val coroutineContext: CoroutineContext
+        get() = context
+
+    protected val parentJob = context[Job]
+
+    private var parentCancelDisposable: Disposable? = null
+
     init {
-        state.set(CoroutineState.InComplete)
+        state.set(CoroutineState.InComplete())
         this.context = context + this
-        block.startCoroutine(this)
+
+        parentCancelDisposable = parentJob?.invokeOnCancel {
+            cancel()
+        }
     }
 
     val isCompleted
         get() = state.get() is CoroutineState.Complete<*>
 
     override val isActive: Boolean
-        get() = when(val currentState = state.get()){
-            CoroutineState.InComplete -> true
-            is CoroutineState.Complete<*> -> false
-            is CoroutineState.CompleteHandler<*> -> !currentState.isCancelling
+        get() = when(state.get()){
+            is CoroutineState.Complete<*>,
+            is CoroutineState.Cancelling -> false
+            else -> true
         }
 
-    private val cancelHandlers = CopyOnWriteArrayList<CancelHandler>()
-
     override fun resumeWith(result: Result<T>) {
-        val newState = state.updateAndGet { prev ->
-            when (prev) {
-                CoroutineState.InComplete -> {
-                    CoroutineState.Complete(result.getOrNull(), result.exceptionOrNull())
+        val newState = state.updateAndGet { prevState ->
+            when(prevState){
+                is CoroutineState.InComplete -> {
+                    CoroutineState.Complete(result.getOrNull(), result.exceptionOrNull()).from(prevState)
                 }
-                is CoroutineState.CompleteHandler<*> -> {
-                    (prev as CoroutineState.CompleteHandler<T>).doOnCompleted(result.getOrNull(), result.exceptionOrNull())
-                    if(prev.isCancelling){
-                        CoroutineState.Complete(null, CancellationException("Result arrived, but cancelled already."))
-                    } else {
-                        CoroutineState.Complete(result.getOrNull(), result.exceptionOrNull())
-                    }
+                is CoroutineState.Cancelling -> {
+                    CoroutineState.Complete(null, CancellationException("Result arrived, but cancelled already.")).from(prevState)
                 }
                 is CoroutineState.Complete<*> -> {
                     throw IllegalStateException("Already completed!")
@@ -80,13 +142,17 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext, block: suspend ()
             }
         }
 
-        (newState as CoroutineState.Complete<T>).exception?.let(this::handleException)
+        newState.notifyCompletion(result)
+        newState.clear()
+        parentCancelDisposable?.dispose()
+        // TODO review CancellationException
+        (newState as CoroutineState.Complete<T>).exception?.let(this::tryHandleException)
     }
 
     override suspend fun join() {
         when (state.get()) {
-            CoroutineState.InComplete,
-            is CoroutineState.CompleteHandler<*> -> return joinSuspend()
+            is CoroutineState.InComplete,
+            is CoroutineState.Cancelling -> return joinSuspend()
             is CoroutineState.Complete<*> -> return
         }
     }
@@ -98,29 +164,26 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext, block: suspend ()
     override fun cancel() {
         val newState = state.updateAndGet { prev ->
             when (prev) {
-                CoroutineState.InComplete -> {
-                    CoroutineState.CompleteHandler<T>().also { it.makeCancelling() }
+                is CoroutineState.InComplete -> {
+                    CoroutineState.Cancelling().from(prev)
                 }
-                is CoroutineState.CompleteHandler<*> -> {
-                    prev.also { it.makeCancelling() }
-                }
+                is CoroutineState.Cancelling,
                 is CoroutineState.Complete<*> -> prev
             }
         }
 
-        if (newState is CoroutineState.CompleteHandler<*> && newState.isCancelling) {
-            cancelHandlers.forEach(CancelHandler::invoke)
-        }
+        newState.notifyCancellation()
     }
 
-    protected fun doOnCompleted(block: (T?, Throwable?) -> Unit) {
+    protected fun doOnCompleted(block: (T?, Throwable?) -> Unit): Disposable {
+        val disposable = CompletionHandlerDisposable(this, block)
         val newState = state.updateAndGet { prev ->
             when (prev) {
-                CoroutineState.InComplete -> {
-                    CoroutineState.CompleteHandler<T>().also { it.invokeOnComplete(block) }
+                is CoroutineState.InComplete -> {
+                    CoroutineState.InComplete().from(prev).with(disposable)
                 }
-                is CoroutineState.CompleteHandler<*> -> {
-                    (prev as CoroutineState.CompleteHandler<T>).also { it.invokeOnComplete(block) }
+                is CoroutineState.Cancelling -> {
+                    CoroutineState.Cancelling().from(prev).with(disposable)
                 }
                 is CoroutineState.Complete<*> -> {
                     prev
@@ -130,24 +193,66 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext, block: suspend ()
         (newState as? CoroutineState.Complete<T>)?.let {
             block(it.value, it.exception)
         }
+        return disposable
     }
 
-    override fun invokeOnCancel(cancelHandler: CancelHandler) {
-        when(val currentState = state.get()){
-            CoroutineState.InComplete -> cancelHandlers += cancelHandler
-            is CoroutineState.CompleteHandler<*> -> {
-                if(currentState.isCancelling) {
-                    cancelHandler()
-                } else {
-                    cancelHandlers += cancelHandler
+    override fun invokeOnCancel(onCancel: OnCancel): Disposable {
+        val disposable = CancellationHandlerDisposable(this, onCancel)
+        val newState = state.updateAndGet { prev ->
+            when (prev) {
+                is CoroutineState.InComplete -> {
+                    CoroutineState.InComplete().from(prev).with(disposable)
+                }
+                is CoroutineState.Cancelling,
+                is CoroutineState.Complete<*> -> {
+                    prev
+                }
+            }
+        }
+        (newState as? CoroutineState.Cancelling)?.let {
+            // call immediately when complete.
+            onCancel()
+        }
+        return disposable
+    }
+
+    override fun invokeOnCompletion(onComplete: OnComplete): Disposable {
+        return doOnCompleted { _, _ -> onComplete() }
+    }
+
+    override fun remove(disposable: Disposable) {
+        state.updateAndGet { prev ->
+            when (prev) {
+                is CoroutineState.InComplete -> {
+                    CoroutineState.InComplete().from(prev).without(disposable)
+                }
+                is CoroutineState.Cancelling -> {
+                    CoroutineState.Cancelling().from(prev).without(disposable)
+                }
+                is CoroutineState.Complete<*> -> {
+                    prev
                 }
             }
         }
     }
 
-    override fun invokeOnCompletion(completionHandler: CompletionHandler) {
-        doOnCompleted { _, _ -> completionHandler() }
+    private fun tryHandleException(e: Throwable): Boolean{
+        return when(e){
+            is CancellationException -> {
+                false
+            }
+            else -> {
+                (parentJob as? AbstractCoroutine<*>)?.handleChildException(e)?.takeIf { it }
+                        ?: handleJobException(e)
+            }
+        }
     }
 
-    protected open fun handleException(e: Throwable) {}
+    protected open fun handleChildException(e: Throwable): Boolean{
+        //child completed with exception, parent cancelled with the same ex.
+        cancel()
+        return tryHandleException(e)
+    }
+
+    protected open fun handleJobException(e: Throwable) = false
 }

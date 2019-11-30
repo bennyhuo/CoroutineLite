@@ -16,11 +16,12 @@ inline fun CoroutineExceptionHandler(crossinline handler: (CoroutineContext, Thr
                     handler.invoke(context, exception)
         }
 
-class StandaloneCoroutine(context: CoroutineContext, block: suspend () -> Unit) : AbstractCoroutine<Unit>(context, block) {
+class StandaloneCoroutine(context: CoroutineContext) : AbstractCoroutine<Unit>(context) {
 
-    override fun handleException(e: Throwable) {
-        super.handleException(e)
+    override fun handleJobException(e: Throwable): Boolean {
+        super.handleJobException(e)
         context[CoroutineExceptionHandler]?.handleException(context, e)
+        return true
     }
 
 }

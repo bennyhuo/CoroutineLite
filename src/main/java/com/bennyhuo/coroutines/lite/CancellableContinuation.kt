@@ -20,7 +20,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
     val isCompleted: Boolean
         get() = state.get() != CancelState.InComplete
 
-    private val cancelHandlers = CopyOnWriteArrayList<CancelHandler>()
+    private val cancelHandlers = CopyOnWriteArrayList<OnCancel>()
 
     override fun resumeWith(result: Result<T>) {
         state.updateAndGet { prev ->
@@ -66,15 +66,15 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         parent.cancel()
     }
 
-    fun invokeOnCancel(cancelHandler: CancelHandler) {
-        cancelHandlers += cancelHandler
+    fun invokeOnCancel(onCancel: OnCancel) {
+        cancelHandlers += onCancel
     }
 
     private fun doCancel() {
         state.updateAndGet { prev ->
             when(prev){
                 CancelState.InComplete -> {
-                    cancelHandlers.forEach(CancelHandler::invoke)
+                    cancelHandlers.forEach(OnCancel::invoke)
                     CancelState.Cancelled
                 }
                 CancelState.Cancelled,
