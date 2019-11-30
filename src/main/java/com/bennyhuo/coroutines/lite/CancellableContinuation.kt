@@ -30,7 +30,10 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
                     CancelState.Complete(result.getOrNull(), result.exceptionOrNull())
                 }
                 CancelState.Cancelled -> {
-                    prev
+                    CancellationException("Cancelled.").let {
+                        continuation.resumeWith(Result.failure(it))
+                        CancelState.Complete(null, it)
+                    }
                 }
                 is CancelState.Complete<*> -> {
                     throw IllegalStateException("Already completed.")

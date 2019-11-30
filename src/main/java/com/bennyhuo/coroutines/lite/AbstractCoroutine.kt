@@ -142,11 +142,11 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
             }
         }
 
+        (newState as CoroutineState.Complete<T>).exception?.let(this::tryHandleException)
+
         newState.notifyCompletion(result)
         newState.clear()
         parentCancelDisposable?.dispose()
-        // TODO review CancellationException
-        (newState as CoroutineState.Complete<T>).exception?.let(this::tryHandleException)
     }
 
     override suspend fun join() {
@@ -249,10 +249,13 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
     }
 
     protected open fun handleChildException(e: Throwable): Boolean{
-        //child completed with exception, parent cancelled with the same ex.
         cancel()
         return tryHandleException(e)
     }
 
     protected open fun handleJobException(e: Throwable) = false
+
+    override fun toString(): String {
+        return context[CoroutineName].toString()
+    }
 }
