@@ -3,6 +3,7 @@ package com.bennyhuo.coroutines.lite
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
 
 private var coroutineIndex = AtomicInteger(0)
@@ -24,10 +25,11 @@ fun CoroutineScope.newCoroutineContext(context: CoroutineContext): CoroutineCont
     return if (combined !== CommonPool && combined[ContinuationInterceptor] == null) combined + CommonPool else combined
 }
 
-fun <T> runBlocking(block: suspend CoroutineScope.() -> T): T {
+fun <T> runBlocking(context: CoroutineContext = EmptyCoroutineContext, block: suspend CoroutineScope.() -> T): T {
     val eventQueue = BlockingQueueDispatcher()
-    val context = DispatcherContext(eventQueue)
-    val completion = BlockingCoroutine<T>(context, eventQueue)
+    //ignore interceptor passed from outside.
+    val newContext = context + DispatcherContext(eventQueue)
+    val completion = BlockingCoroutine<T>(newContext, eventQueue)
     block.startCoroutine(completion, completion)
     return completion.joinBlocking()
 }
