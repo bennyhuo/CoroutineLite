@@ -6,7 +6,7 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 
-typealias OnCompleteT<T> = (T?, Throwable?) -> Unit
+typealias OnCompleteT<T> = (Result<T>) -> Unit
 
 interface Disposable {
     fun dispose()
@@ -29,14 +29,14 @@ sealed class DisposableList {
     class Cons(val head: Disposable, val tail: DisposableList): DisposableList()
 }
 
-tailrec fun DisposableList.remove(disposable: Disposable): DisposableList {
+fun DisposableList.remove(disposable: Disposable): DisposableList {
     return when(this){
         DisposableList.Nil -> this
         is DisposableList.Cons -> {
             if(head == disposable){
                 return tail
             } else {
-                tail.remove(disposable)
+                DisposableList.Cons(head, tail.remove(disposable))
             }
         }
     }
@@ -76,7 +76,7 @@ sealed class CoroutineState {
 
     fun <T> notifyCompletion(result: Result<T>) {
         this.disposableList.loopOn<CompletionHandlerDisposable<T>> {
-            it.onComplete(result.getOrNull(), result.exceptionOrNull())
+            it.onComplete(result)
         }
     }
 
@@ -88,6 +88,10 @@ sealed class CoroutineState {
 
     fun clear() {
         this.disposableList = DisposableList.Nil
+    }
+
+    override fun toString(): String {
+        return "CoroutineState.${this.javaClass.simpleName}"
     }
 
     class InComplete : CoroutineState()
@@ -153,12 +157,20 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
         when (state.get()) {
             is CoroutineState.InComplete,
             is CoroutineState.Cancelling -> return joinSuspend()
-            is CoroutineState.Complete<*> -> return
+            is CoroutineState.Complete<*> -> {
+                val parentJobState = this.parentJob?.isActive ?: return
+                if(!parentJobState){
+                    throw CancellationException("Parent cancelled.")
+                }
+                return
+            }
         }
     }
 
     private suspend fun joinSuspend() = suspendCancellableCoroutine<Unit> { continuation ->
-        doOnCompleted { t, throwable -> continuation.resume(Unit) }
+        doOnCompleted { result ->
+            continuation.resume(Unit)
+        }
     }
 
     override fun cancel() {
@@ -172,10 +184,13 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
             }
         }
 
-        newState.notifyCancellation()
+        if(newState is CoroutineState.Cancelling){
+            newState.notifyCancellation()
+        }
+        parentCancelDisposable?.dispose()
     }
 
-    protected fun doOnCompleted(block: (T?, Throwable?) -> Unit): Disposable {
+    protected fun doOnCompleted(block: (Result<T>) -> Unit): Disposable {
         val disposable = CompletionHandlerDisposable(this, block)
         val newState = state.updateAndGet { prev ->
             when (prev) {
@@ -191,7 +206,13 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
             }
         }
         (newState as? CoroutineState.Complete<T>)?.let {
-            block(it.value, it.exception)
+            block(
+                    when {
+                        it.value != null -> Result.success(it.value)
+                        it.exception != null -> Result.failure(it.exception)
+                        else -> throw IllegalStateException("Won't happen.")
+                    }
+            )
         }
         return disposable
     }
@@ -217,7 +238,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
     }
 
     override fun invokeOnCompletion(onComplete: OnComplete): Disposable {
-        return doOnCompleted { _, _ -> onComplete() }
+        return doOnCompleted { _ -> onComplete() }
     }
 
     override fun remove(disposable: Disposable) {

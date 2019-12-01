@@ -15,18 +15,19 @@ class Deferred<T>(context: CoroutineContext) : AbstractCoroutine<T>(context) {
         return when (currentState) {
             is CoroutineState.InComplete,
             is CoroutineState.Cancelling -> awaitSuspend()
-            is CoroutineState.Complete<*> -> (currentState.value as T?)
-                    ?: throw currentState.exception!!
+            is CoroutineState.Complete<*> -> {
+                if(parentJob != null && !parentJob.isActive){
+                    throw CancellationException("Parent cancelled.")
+                }
+                (currentState.value as T?)
+                        ?: throw currentState.exception!!
+            }
         }
     }
 
     private suspend fun awaitSuspend() = suspendCancellableCoroutine<T> { continuation ->
-        doOnCompleted { t, throwable ->
-            when {
-                t != null -> continuation.resume(t)
-                throwable != null -> continuation.resumeWithException(throwable)
-                else -> throw IllegalStateException("Won't happen.")
-            }
+        doOnCompleted { result ->
+            continuation.resumeWith(result)
         }
     }
 }

@@ -1,7 +1,9 @@
 package com.bennyhuo.coroutines.lite
 
-import kotlin.coroutines.*
-import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.startCoroutine
 
 interface CoroutineScope {
     val coroutineContext: CoroutineContext
