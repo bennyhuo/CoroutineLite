@@ -21,11 +21,7 @@ private object CommonPoolDispatcher: Dispatcher {
     }
 
     override fun dispatch(block: () -> Unit) {
-        if(Thread.currentThread().threadGroup == threadGroup){
-            block()
-        } else {
-            executor.submit(block)
-        }
+        executor.submit(block)
     }
 }
 

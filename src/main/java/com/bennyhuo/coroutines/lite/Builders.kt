@@ -20,7 +20,7 @@ fun <T> CoroutineScope.async(context: CoroutineContext = CommonPool, block: susp
 }
 
 fun CoroutineScope.newCoroutineContext(context: CoroutineContext): CoroutineContext {
-    val combined = coroutineContext + context + CoroutineName("@coroutine-${coroutineIndex.getAndIncrement()}")
+    val combined = coroutineContext + context + CoroutineName("@coroutine#${coroutineIndex.getAndIncrement()}")
     return if (combined !== CommonPool && combined[ContinuationInterceptor] == null) combined + CommonPool else combined
 }
 

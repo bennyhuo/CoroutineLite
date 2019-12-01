@@ -17,8 +17,8 @@ suspend fun main(){
                 log(3)
                 launch(exceptionHandler) {
                     log(4)
-                    throw IllegalStateException()
-                }.join()
+                    Thread.sleep(1000)
+                }
                 log(5)
             }.join()
             log(6)
