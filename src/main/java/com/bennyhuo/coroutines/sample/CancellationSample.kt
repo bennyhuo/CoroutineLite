@@ -5,6 +5,7 @@ import com.bennyhuo.coroutines.lite.launch
 import com.bennyhuo.coroutines.lite.suspendCancellableCoroutine
 import com.bennyhuo.coroutines.utils.log
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -53,7 +54,8 @@ suspend fun cancellableFunction() = suspendCancellableCoroutine<Int> { continuat
     completableFuture.thenApply {
         continuation.resume(it)
     }.exceptionally {
-        continuation.resumeWithException(it)
+        // when cancelled, `it` will be a CompletionException wrapping a CancellationException.
+        continuation.resumeWithException((it as? CompletionException)?.cause ?: it)
     }
 }
 

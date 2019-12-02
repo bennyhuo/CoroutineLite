@@ -31,7 +31,7 @@ val VERBOSE = true
  * }
  * ```
  */
-open class TestBase constructor() {
+open class TestBase {
     /**
      * Is `true` when running in a nightly stress test mode.
      */
@@ -53,6 +53,10 @@ open class TestBase constructor() {
     private val uncaughtExceptions = Collections.synchronizedList(ArrayList<Throwable>())
     private var originalUncaughtExceptionHandler: Thread.UncaughtExceptionHandler? = null
     private val SHUTDOWN_TIMEOUT = 1_000L // 1s at most to wait per thread
+
+    init {
+        ignoreLostThreads("DefaultDispatcher-worker-")
+    }
 
     /**
      * Throws [IllegalStateException] like `error` in stdlib, but also ensures that the test will not

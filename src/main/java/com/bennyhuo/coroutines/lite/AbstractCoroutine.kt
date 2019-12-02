@@ -134,11 +134,10 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
     override fun resumeWith(result: Result<T>) {
         val newState = state.updateAndGet { prevState ->
             when(prevState){
+                //although cancelled, flows of job may work out with the normal result.
+                is CoroutineState.Cancelling,
                 is CoroutineState.InComplete -> {
                     CoroutineState.Complete(result.getOrNull(), result.exceptionOrNull()).from(prevState)
-                }
-                is CoroutineState.Cancelling -> {
-                    CoroutineState.Complete(null, CancellationException("Result arrived, but cancelled already.")).from(prevState)
                 }
                 is CoroutineState.Complete<*> -> {
                     throw IllegalStateException("Already completed!")
