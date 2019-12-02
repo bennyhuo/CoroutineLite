@@ -1,2 +1,4 @@
 rootProject.name = 'CoroutineLite'
+include ':coroutines'
+include ':sample'
 
