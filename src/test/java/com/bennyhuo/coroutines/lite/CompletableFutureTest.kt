@@ -3,7 +3,9 @@ package com.bennyhuo.coroutines.lite
 import com.bennyhuo.coroutines.utils.log
 import org.junit.Test
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
 import kotlin.random.Random
+import kotlin.test.expect
 
 class CompletableFutureTest {
     @Test
@@ -18,7 +20,7 @@ class CompletableFutureTest {
         completableFuture.thenApply {
             log(it)
         }.exceptionally {
-            log("exception", it)
+            assert(it is CompletionException)
         }
     }
 }
