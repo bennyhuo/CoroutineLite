@@ -1,4 +1,4 @@
-package com.bennyhuo.kotlin.coroutines
+package com.bennyhuo.kotlin.coroutines.core
 
 import com.bennyhuo.kotlin.coroutines.dispatcher.Dispatcher
 import java.util.concurrent.LinkedBlockingDeque

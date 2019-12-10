@@ -1,6 +1,6 @@
 package com.bennyhuo.kotlin.coroutines.sample
 
-import com.bennyhuo.kotlin.coroutines.GlobalScope
+import com.bennyhuo.kotlin.coroutines.scope.GlobalScope
 import com.bennyhuo.kotlin.coroutines.delay
 import com.bennyhuo.kotlin.coroutines.launch
 import kotlin.coroutines.suspendCoroutine

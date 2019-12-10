@@ -1,9 +1,9 @@
 package com.bennyhuo.kotlin.coroutines
 
+import com.bennyhuo.kotlin.coroutines.core.AbstractCoroutine
+import com.bennyhuo.kotlin.coroutines.core.CoroutineState
+import com.bennyhuo.kotlin.coroutines.cancel.suspendCancellableCoroutine
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.suspendCoroutine
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /**
  * Created by benny on 2018/5/20.

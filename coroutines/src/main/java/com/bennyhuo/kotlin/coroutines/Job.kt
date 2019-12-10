@@ -1,5 +1,6 @@
 package com.bennyhuo.kotlin.coroutines
 
+import com.bennyhuo.kotlin.coroutines.core.Disposable
 import kotlin.coroutines.CoroutineContext
 
 typealias OnComplete = () -> Unit

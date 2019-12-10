@@ -4,10 +4,8 @@
 
 package com.bennyhuo.kotlin.coroutines
 
-import com.bennyhuo.kotlin.coroutines.CancellationException
-import com.bennyhuo.kotlin.coroutines.CoroutineExceptionHandler
-import com.bennyhuo.kotlin.coroutines.CoroutineScope
-import com.bennyhuo.kotlin.coroutines.runBlocking
+import com.bennyhuo.kotlin.coroutines.exception.CoroutineExceptionHandler
+import com.bennyhuo.kotlin.coroutines.scope.CoroutineScope
 import org.junit.*
 import java.util.*
 import java.util.concurrent.atomic.*

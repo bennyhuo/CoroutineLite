@@ -1,8 +1,8 @@
 package com.bennyhuo.kotlin.coroutines.sample
 
-import com.bennyhuo.kotlin.coroutines.GlobalScope
+import com.bennyhuo.kotlin.coroutines.scope.GlobalScope
 import com.bennyhuo.kotlin.coroutines.launch
-import com.bennyhuo.kotlin.coroutines.suspendCancellableCoroutine
+import com.bennyhuo.kotlin.coroutines.cancel.suspendCancellableCoroutine
 import com.bennyhuo.kotlin.coroutines.utils.log
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletionException

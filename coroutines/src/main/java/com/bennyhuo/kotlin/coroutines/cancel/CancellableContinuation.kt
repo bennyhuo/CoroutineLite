@@ -1,20 +1,14 @@
-package com.bennyhuo.kotlin.coroutines
+package com.bennyhuo.kotlin.coroutines.cancel
 
+import com.bennyhuo.kotlin.coroutines.CancellationException
+import com.bennyhuo.kotlin.coroutines.Job
+import com.bennyhuo.kotlin.coroutines.OnCancel
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.intrinsics.intercepted
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
-
-sealed class CancelState {
-    override fun toString(): String {
-        return "CancelState.${this.javaClass.simpleName}"
-    }
-    object InComplete : CancelState()
-    class Complete<T>(val value: T? = null, val exception: Throwable? = null) : CancelState()
-    object Cancelled : CancelState()
-}
 
 class CancellableContinuation<T>(private val continuation: Continuation<T>) : Continuation<T> by continuation {
 
@@ -78,7 +72,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
 
     private fun doCancel() {
         state.updateAndGet { prev ->
-            when(prev){
+            when (prev) {
                 CancelState.InComplete -> {
                     cancelHandlers.forEach(OnCancel::invoke)
                     CancelState.Cancelled

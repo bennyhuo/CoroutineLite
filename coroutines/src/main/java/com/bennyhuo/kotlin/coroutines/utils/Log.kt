@@ -1,6 +1,6 @@
 package com.bennyhuo.kotlin.coroutines.utils
 
-import com.bennyhuo.kotlin.coroutines.CoroutineScope
+import com.bennyhuo.kotlin.coroutines.scope.CoroutineScope
 import com.bennyhuo.kotlin.coroutines.Job
 import java.text.SimpleDateFormat
 import java.util.*
