@@ -6,6 +6,7 @@ import com.bennyhuo.kotlin.coroutines.context.CoroutineName
 import com.bennyhuo.kotlin.coroutines.exception.CoroutineExceptionHandler
 import com.bennyhuo.kotlin.coroutines.scope.GlobalScope
 import com.bennyhuo.kotlin.coroutines.scope.coroutineScope
+import com.bennyhuo.kotlin.coroutines.scope.supervisorScope
 
 suspend fun main(){
 
@@ -30,4 +31,26 @@ suspend fun main(){
         log(7)
     }.join()
     log(8)
+
+
+    GlobalScope.launch {
+        GlobalScope.launch {
+
+        }
+    }
+
+    GlobalScope.launch {
+        coroutineScope {
+            launch {}
+            launch {}
+        }
+    }
+
+    GlobalScope.launch {
+        supervisorScope {
+            launch {}
+            launch {}
+        }
+    }
+
 }

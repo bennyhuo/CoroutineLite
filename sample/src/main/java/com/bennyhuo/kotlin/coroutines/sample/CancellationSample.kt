@@ -41,16 +41,13 @@ suspend fun nonCancellableFunction() = suspendCoroutine<Int> { continuation ->
 }
 
 suspend fun cancellableFunction() = suspendCancellableCoroutine<Int> { continuation ->
-
     val completableFuture = CompletableFuture.supplyAsync {
         Thread.sleep(1000)
         Random.nextInt()
     }
-
     continuation.invokeOnCancel {
         completableFuture.cancel(true)
     }
-
     completableFuture.thenApply {
         continuation.resume(it)
     }.exceptionally {
@@ -58,4 +55,3 @@ suspend fun cancellableFunction() = suspendCancellableCoroutine<Int> { continuat
         continuation.resumeWithException((it as? CompletionException)?.cause ?: it)
     }
 }
-
