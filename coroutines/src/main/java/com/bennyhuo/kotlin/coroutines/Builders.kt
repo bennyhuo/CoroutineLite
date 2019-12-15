@@ -3,6 +3,7 @@ package com.bennyhuo.kotlin.coroutines
 import com.bennyhuo.kotlin.coroutines.context.CoroutineName
 import com.bennyhuo.kotlin.coroutines.core.BlockingCoroutine
 import com.bennyhuo.kotlin.coroutines.core.BlockingQueueDispatcher
+import com.bennyhuo.kotlin.coroutines.core.DeferredCoroutine
 import com.bennyhuo.kotlin.coroutines.core.StandaloneCoroutine
 import com.bennyhuo.kotlin.coroutines.dispatcher.DispatcherContext
 import com.bennyhuo.kotlin.coroutines.dispatcher.Dispatchers
@@ -22,7 +23,7 @@ fun CoroutineScope.launch(context: CoroutineContext = EmptyCoroutineContext, blo
 }
 
 fun <T> CoroutineScope.async(context: CoroutineContext = Dispatchers.Default, block: suspend CoroutineScope.() -> T): Deferred<T> {
-    val completion = Deferred<T>(newCoroutineContext(context))
+    val completion = DeferredCoroutine<T>(newCoroutineContext(context))
     block.startCoroutine(completion, completion)
     return completion
 }
