@@ -74,7 +74,6 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         state.updateAndGet { prev ->
             when (prev) {
                 CancelState.InComplete -> {
-                    cancelHandlers.forEach(OnCancel::invoke)
                     CancelState.Cancelled
                 }
                 CancelState.Cancelled,
@@ -83,6 +82,8 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
                 }
             }
         }
+        cancelHandlers.forEach(OnCancel::invoke)
+        cancelHandlers.clear()
     }
 }
 
