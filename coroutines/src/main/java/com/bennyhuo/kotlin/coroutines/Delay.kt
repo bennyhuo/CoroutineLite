@@ -3,7 +3,6 @@ package com.bennyhuo.kotlin.coroutines
 import com.bennyhuo.kotlin.coroutines.cancel.suspendCancellableCoroutine
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.suspendCoroutine
 import kotlin.coroutines.resume
 
 /**

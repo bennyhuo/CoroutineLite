@@ -77,9 +77,10 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
     }
 
     private suspend fun joinSuspend() = suspendCancellableCoroutine<Unit> { continuation ->
-        doOnCompleted { result ->
+        val disposable = doOnCompleted { result ->
             continuation.resume(Unit)
         }
+        continuation.invokeOnCancel { disposable.dispose() }
     }
 
     override fun cancel() {

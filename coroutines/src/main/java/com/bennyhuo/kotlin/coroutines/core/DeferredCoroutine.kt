@@ -23,8 +23,9 @@ class DeferredCoroutine<T>(context: CoroutineContext) : AbstractCoroutine<T>(con
     }
 
     private suspend fun awaitSuspend() = suspendCancellableCoroutine<T> { continuation ->
-        doOnCompleted { result ->
+        val disposable = doOnCompleted { result ->
             continuation.resumeWith(result)
         }
+        continuation.invokeOnCancel { disposable.dispose() }
     }
 }

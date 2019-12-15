@@ -2,11 +2,7 @@ package com.bennyhuo.kotlin.coroutines.scope
 
 import com.bennyhuo.kotlin.coroutines.Job
 import com.bennyhuo.kotlin.coroutines.core.AbstractCoroutine
-import com.bennyhuo.kotlin.coroutines.cancel.suspendCancellableCoroutine
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.coroutines.startCoroutine
+import kotlin.coroutines.*
 
 interface CoroutineScope {
     val coroutineContext: CoroutineContext
@@ -26,7 +22,7 @@ fun CoroutineScope.cancel() {
 }
 
 suspend fun <R> coroutineScope(block: suspend CoroutineScope.() -> R): R =
-        suspendCancellableCoroutine { continuation ->
+        suspendCoroutine { continuation ->
             val coroutine = ScopeCoroutine(continuation.context, continuation)
             block.startCoroutine(coroutine, coroutine)
         }

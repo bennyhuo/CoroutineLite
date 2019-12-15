@@ -1,9 +1,9 @@
 package com.bennyhuo.kotlin.coroutines.scope
 
-import com.bennyhuo.kotlin.coroutines.cancel.suspendCancellableCoroutine
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.startCoroutine
+import kotlin.coroutines.suspendCoroutine
 
 private class SupervisorCoroutine<T>(
         context: CoroutineContext,
@@ -17,7 +17,7 @@ private class SupervisorCoroutine<T>(
 }
 
 suspend fun <R> supervisorScope(block: suspend CoroutineScope.() -> R): R =
-        suspendCancellableCoroutine { continuation ->
+        suspendCoroutine { continuation ->
             val coroutine = SupervisorCoroutine(continuation.context, continuation)
             block.startCoroutine(coroutine, coroutine)
         }
