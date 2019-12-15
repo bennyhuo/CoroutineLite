@@ -29,7 +29,7 @@ fun <T> CoroutineScope.async(context: CoroutineContext = Dispatchers.Default, bl
 }
 
 fun CoroutineScope.newCoroutineContext(context: CoroutineContext): CoroutineContext {
-    val combined = coroutineContext + context + CoroutineName("@coroutine#${coroutineIndex.getAndIncrement()}")
+    val combined = scopeContext + context + CoroutineName("@coroutine#${coroutineIndex.getAndIncrement()}")
     return if (combined !== Dispatchers.Default && combined[ContinuationInterceptor] == null) combined + Dispatchers.Default else combined
 }
 

@@ -5,18 +5,18 @@ import com.bennyhuo.kotlin.coroutines.core.AbstractCoroutine
 import kotlin.coroutines.*
 
 interface CoroutineScope {
-    val coroutineContext: CoroutineContext
+    val scopeContext: CoroutineContext
 }
 
 internal class ContextScope(context: CoroutineContext) : CoroutineScope {
-    override val coroutineContext: CoroutineContext = context
+    override val scopeContext: CoroutineContext = context
 }
 
 operator fun CoroutineScope.plus(context: CoroutineContext): CoroutineScope =
-        ContextScope(coroutineContext + context)
+        ContextScope(scopeContext + context)
 
 fun CoroutineScope.cancel() {
-    val job = coroutineContext[Job]
+    val job = scopeContext[Job]
             ?: error("Scope cannot be cancelled because it does not have a job: $this")
     job.cancel()
 }

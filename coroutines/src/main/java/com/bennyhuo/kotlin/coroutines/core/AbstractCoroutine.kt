@@ -7,6 +7,7 @@ import com.bennyhuo.kotlin.coroutines.scope.CoroutineScope
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.resume
 
 abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuation<T>, CoroutineScope {
@@ -15,7 +16,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
 
     override val context: CoroutineContext
 
-    override val coroutineContext: CoroutineContext
+    override val scopeContext: CoroutineContext
         get() = context
 
     protected val parentJob = context[Job]
@@ -67,9 +68,9 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
             is CoroutineState.InComplete,
             is CoroutineState.Cancelling -> return joinSuspend()
             is CoroutineState.Complete<*> -> {
-                val parentJobState = this.parentJob?.isActive ?: return
-                if(!parentJobState){
-                    throw CancellationException("Parent cancelled.")
+                val currentCallingJobState = coroutineContext[Job] ?.isActive ?: return
+                if(!currentCallingJobState){
+                    throw CancellationException("Coroutine is cancelled.")
                 }
                 return
             }

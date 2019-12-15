@@ -22,7 +22,7 @@ fun stackTrace(){
     Throwable().printStackTrace(System.out)
 }
 
-fun CoroutineScope.log(vararg msg: Any?) = coroutineContext.log(*msg)
+fun CoroutineScope.log(vararg msg: Any?) = scopeContext.log(*msg)
 
 fun <T> Continuation<T>.log(vararg msg: Any?) = context.log(*msg)
 
