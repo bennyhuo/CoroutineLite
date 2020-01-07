@@ -12,8 +12,13 @@ private val executor = Executors.newScheduledThreadPool(1) { runnable ->
     Thread(runnable, "Scheduler").apply { isDaemon = true }
 }
 
-suspend fun delay(time: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) = suspendCancellableCoroutine<Unit> {
-    continuation ->
-    val future = executor.schedule({ continuation.resume(Unit) }, time, unit)
-    continuation.invokeOnCancel { future.cancel(true) }
+suspend fun delay(time: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) {
+    if(time <= 0){
+        return
+    }
+
+    suspendCancellableCoroutine<Unit> { continuation ->
+        val future = executor.schedule({ continuation.resume(Unit) }, time, unit)
+        continuation.invokeOnCancel { future.cancel(true) }
+    }
 }
