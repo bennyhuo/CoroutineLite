@@ -71,7 +71,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         parent.cancel()
     }
 
-    fun invokeOnCancel(onCancel: OnCancel) {
+    fun invokeOnCancellation(onCancel: OnCancel) {
         val newState = state.updateAndGet { prev ->
             when(prev){
                 CancelState.InComplete -> CancelState.CancelHandler(onCancel)

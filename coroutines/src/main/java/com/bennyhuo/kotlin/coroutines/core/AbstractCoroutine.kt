@@ -81,7 +81,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
         val disposable = doOnCompleted { result ->
             continuation.resume(Unit)
         }
-        continuation.invokeOnCancel { disposable.dispose() }
+        continuation.invokeOnCancellation { disposable.dispose() }
     }
 
     override fun cancel() {

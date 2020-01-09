@@ -19,6 +19,6 @@ suspend fun delay(time: Long, unit: TimeUnit = TimeUnit.MILLISECONDS) {
 
     suspendCancellableCoroutine<Unit> { continuation ->
         val future = executor.schedule({ continuation.resume(Unit) }, time, unit)
-        continuation.invokeOnCancel { future.cancel(true) }
+        continuation.invokeOnCancellation { future.cancel(true) }
     }
 }

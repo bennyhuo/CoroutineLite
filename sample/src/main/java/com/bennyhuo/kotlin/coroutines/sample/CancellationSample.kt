@@ -51,7 +51,7 @@ suspend fun cancellableFunction() = suspendCancellableCoroutine<Int> { continuat
         Thread.sleep(1000)
         Random.nextInt()
     }
-    continuation.invokeOnCancel {
+    continuation.invokeOnCancellation {
         completableFuture.cancel(true)
     }
     completableFuture.thenApply {
