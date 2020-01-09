@@ -1,7 +1,7 @@
 package com.bennyhuo.kotlin.coroutines.dispatcher
 
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.*
+import java.util.concurrent.atomic.*
 
 object DefaultDispatcher: Dispatcher {
 
@@ -9,7 +9,7 @@ object DefaultDispatcher: Dispatcher {
 
     private val threadIndex = AtomicInteger(0)
 
-    private val executor = Executors.newFixedThreadPool(2 * Runtime.getRuntime().availableProcessors()) { runnable ->
+    private val executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1) { runnable ->
         Thread(threadGroup, runnable, "${threadGroup.name}-worker-${threadIndex.getAndIncrement()}").apply { isDaemon = true }
     }
 
