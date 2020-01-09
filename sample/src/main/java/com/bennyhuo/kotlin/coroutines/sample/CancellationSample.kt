@@ -22,6 +22,12 @@ suspend fun main() {
     }
     log(4)
 
+    job.invokeOnCancel {
+        log("invoke on cancel.")
+    }
+
+    job.cancel()
+    job.cancel()
     job.cancel()
     job.join()
 }
