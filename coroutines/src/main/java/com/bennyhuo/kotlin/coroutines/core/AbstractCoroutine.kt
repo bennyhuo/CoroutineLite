@@ -85,18 +85,19 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
     }
 
     override fun cancel() {
-        val newState = state.updateAndGet { prev ->
+        val prevState = state.getAndUpdate { prev ->
             when (prev) {
                 is CoroutineState.InComplete -> {
-                    CoroutineState.Cancelling().from(prev)
+                    CoroutineState.Cancelling()
                 }
                 is CoroutineState.Cancelling,
                 is CoroutineState.Complete<*> -> prev
             }
         }
 
-        if(newState is CoroutineState.Cancelling){
-            newState.notifyCancellation()
+        if(prevState is CoroutineState.InComplete){
+            prevState.notifyCancellation()
+            prevState.clear()
         }
         parentCancelDisposable?.dispose()
     }
@@ -142,7 +143,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
             }
         }
         (newState as? CoroutineState.Cancelling)?.let {
-            // call immediately when complete.
+            // call immediately when Cancelling.
             onCancel()
         }
         return disposable
