@@ -1,11 +1,9 @@
 package com.bennyhuo.kotlin.coroutines.core
 
-import com.bennyhuo.kotlin.coroutines.Deferred
-import com.bennyhuo.kotlin.coroutines.Job
-import com.bennyhuo.kotlin.coroutines.cancel.suspendCancellableCoroutine
+import com.bennyhuo.kotlin.coroutines.*
+import com.bennyhuo.kotlin.coroutines.cancel.*
 import java.util.concurrent.CancellationException
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.*
 
 class DeferredCoroutine<T>(context: CoroutineContext) : AbstractCoroutine<T>(context), Deferred<T> {
 
@@ -18,8 +16,7 @@ class DeferredCoroutine<T>(context: CoroutineContext) : AbstractCoroutine<T>(con
                 coroutineContext[Job] ?.isActive ?.takeIf { !it }?.let {
                     throw CancellationException("Coroutine is cancelled.")
                 }
-                (currentState.value as T?)
-                        ?: throw currentState.exception!!
+                currentState.exception?.let { throw it } ?: (currentState.value as T)
             }
         }
     }
