@@ -1,5 +1,9 @@
 package com.bennyhuo.kotlin.coroutines.sample
 
+import okhttp3.ResponseBody
+import retrofit2.Retrofit
+import retrofit2.http.GET
+import retrofit2.http.Url
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.event.ActionEvent
@@ -46,4 +50,14 @@ fun main() {
             println("Hello")
         }
     }
+}
+
+
+interface Service{
+    @GET
+    fun getLogo(@Url fileUrl: String): retrofit2.Call<ResponseBody>
+}
+
+object LogoService {
+    val service = Retrofit.Builder().build().create(Service::class.java)
 }
