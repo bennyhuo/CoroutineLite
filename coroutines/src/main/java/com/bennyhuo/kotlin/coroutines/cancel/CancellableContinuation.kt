@@ -15,7 +15,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
     private val state = AtomicReference<CancelState>(CancelState.InComplete)
 
     val isCompleted: Boolean
-        get() = when(state.get()){
+        get() = when (state.get()) {
             CancelState.InComplete,
             is CancelState.CancelHandler -> false
             is CancelState.Complete<*>,
@@ -73,14 +73,14 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
 
     fun invokeOnCancellation(onCancel: OnCancel) {
         val newState = state.updateAndGet { prev ->
-            when(prev){
+            when (prev) {
                 CancelState.InComplete -> CancelState.CancelHandler(onCancel)
                 is CancelState.CancelHandler -> throw IllegalStateException("It's prohibited to register multiple handlers.")
                 is CancelState.Complete<*>,
                 CancelState.Cancelled -> prev
             }
         }
-        if(newState is CancelState.Cancelled){
+        if (newState is CancelState.Cancelled) {
             onCancel()
         }
     }
@@ -89,7 +89,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         val prevState = state.getAndUpdate { prev ->
             when (prev) {
                 is CancelState.CancelHandler,
-                    CancelState.InComplete -> {
+                CancelState.InComplete -> {
                     CancelState.Cancelled
                 }
                 CancelState.Cancelled,
@@ -98,7 +98,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
                 }
             }
         }
-        if(prevState is CancelState.CancelHandler){
+        if (prevState is CancelState.CancelHandler) {
             prevState.onCancel()
         }
     }
