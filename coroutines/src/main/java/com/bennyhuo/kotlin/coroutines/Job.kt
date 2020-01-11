@@ -23,5 +23,7 @@ interface Job : CoroutineContext.Element {
 
     fun remove(disposable: Disposable)
 
+    fun attachChild(child: Job): Disposable
+
     suspend fun join()
 }

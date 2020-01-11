@@ -11,6 +11,7 @@ class DeferredCoroutine<T>(context: CoroutineContext) : AbstractCoroutine<T>(con
         val currentState = state.get()
         return when (currentState) {
             is CoroutineState.InComplete,
+            is CoroutineState.CompleteWaitForChildren<*>,
             is CoroutineState.Cancelling -> awaitSuspend()
             is CoroutineState.Complete<*> -> {
                 coroutineContext[Job] ?.isActive ?.takeIf { !it }?.let {
