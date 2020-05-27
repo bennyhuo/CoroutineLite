@@ -88,7 +88,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
         val prevState = state.getAndUpdate { prev ->
             when (prev) {
                 is CoroutineState.InComplete -> {
-                    CoroutineState.Cancelling()
+                    CoroutineState.Cancelling().from(prev)
                 }
                 is CoroutineState.Cancelling,
                 is CoroutineState.Complete<*> -> prev
@@ -97,7 +97,6 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
 
         if(prevState is CoroutineState.InComplete){
             prevState.notifyCancellation()
-            prevState.clear()
         }
         parentCancelDisposable?.dispose()
     }
@@ -120,8 +119,8 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
         (newState as? CoroutineState.Complete<T>)?.let {
             block(
                     when {
-                        it.value != null -> Result.success(it.value)
                         it.exception != null -> Result.failure(it.exception)
+                        it.value != null -> Result.success(it.value)
                         else -> throw IllegalStateException("Won't happen.")
                     }
             )

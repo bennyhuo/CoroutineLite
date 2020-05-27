@@ -11,22 +11,17 @@ import kotlin.coroutines.suspendCoroutine
 suspend fun main(){
     val job = GlobalScope.launch {
         log(1)
-        val result = hello()
-        log(2, result)
+        launch {
+            delay(1000)
+        }.join()
+        log(2)
         delay(1000)
         log(3)
     }
 
     log(job.isActive)
-    Thread.sleep(1500)
+    Thread.sleep(500)
     job.cancel()
     job.join()
     log("end")
-}
-
-suspend fun hello() = suspendCoroutine<Int> {
-    thread(isDaemon = true) {
-        Thread.sleep(1000)
-        it.resume(10086)
-    }
 }
