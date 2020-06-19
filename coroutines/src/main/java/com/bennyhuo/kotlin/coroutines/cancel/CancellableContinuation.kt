@@ -9,10 +9,12 @@ import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.intrinsics.intercepted
 import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
+import kotlin.coroutines.resumeWithException
 
 class CancellableContinuation<T>(private val continuation: Continuation<T>) : Continuation<T> by continuation {
 
     private val state = AtomicReference<CancelState>(CancelState.InComplete)
+    private val decision = AtomicReference(CancelDecision.UNDECIDED)
 
     val isCompleted: Boolean
         get() = when (state.get()) {
@@ -23,28 +25,33 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         }
 
     override fun resumeWith(result: Result<T>) {
-        state.updateAndGet { prev ->
-            when (prev) {
-                is CancelState.CancelHandler,
-                CancelState.InComplete -> {
-                    continuation.resumeWith(result)
-                    CancelState.Complete(result.getOrNull(), result.exceptionOrNull())
-                }
-                CancelState.Cancelled -> {
-                    CancellationException("Cancelled.").let {
-                        continuation.resumeWith(Result.failure(it))
-                        CancelState.Complete(null, it)
+        when {
+            decision.compareAndSet(CancelDecision.UNDECIDED, CancelDecision.RESUMED) -> {
+                // before getResult called.
+                state.set(CancelState.Complete(result.getOrNull(), result.exceptionOrNull()))
+            }
+            decision.compareAndSet(CancelDecision.SUSPENDED, CancelDecision.RESUMED) -> {
+                state.updateAndGet { prev ->
+                    when (prev) {
+                        is CancelState.Complete<*> -> {
+                            throw IllegalStateException("Already completed.")
+                        }
+                        else -> {
+                            CancelState.Complete(result.getOrNull(), result.exceptionOrNull())
+                        }
                     }
                 }
-                is CancelState.Complete<*> -> {
-                    throw IllegalStateException("Already completed.")
-                }
+                continuation.resumeWith(result)
             }
         }
     }
 
     fun getResult(): Any? {
         installCancelHandler()
+
+        if(decision.compareAndSet(CancelDecision.UNDECIDED, CancelDecision.SUSPENDED))
+            return COROUTINE_SUSPENDED
+
         return when (val currentState = state.get()) {
             is CancelState.CancelHandler,
             CancelState.InComplete -> COROUTINE_SUSPENDED
@@ -100,6 +107,7 @@ class CancellableContinuation<T>(private val continuation: Continuation<T>) : Co
         }
         if (prevState is CancelState.CancelHandler) {
             prevState.onCancel()
+            resumeWithException(CancellationException("Cancelled."))
         }
     }
 }

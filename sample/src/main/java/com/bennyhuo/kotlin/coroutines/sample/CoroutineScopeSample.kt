@@ -10,6 +10,12 @@ import com.bennyhuo.kotlin.coroutines.scope.supervisorScope
 
 suspend fun main(){
 
+    coroutineScope {
+        launch {  }
+
+        async {  }
+    }
+
     val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         log(coroutineContext[CoroutineName], throwable)
     }
@@ -34,6 +40,14 @@ suspend fun main(){
 
 
     GlobalScope.launch {
+        launch {
+
+        }
+
+        async {
+
+        }
+
         GlobalScope.launch {
 
         }
@@ -53,4 +67,12 @@ suspend fun main(){
         }
     }
 
+}
+
+suspend fun noScope(){
+    coroutineScope {
+        launch {
+
+        }
+    }
 }
