@@ -14,7 +14,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
 
     protected val state = AtomicReference<CoroutineState>()
 
-    override val context: CoroutineContext
+    final override val context: CoroutineContext
 
     override val scopeContext: CoroutineContext
         get() = context
@@ -57,6 +57,7 @@ abstract class AbstractCoroutine<T>(context: CoroutineContext) : Job, Continuati
         when(newState){
             is CoroutineState.CompleteWaitForChildren<*> -> newState.tryWaitForChildren(::tryCompleteOnChildCompleted)
             is CoroutineState.Complete<*> -> makeCompletion(newState as CoroutineState.Complete<T>)
+            else -> {}
         }
 
     }

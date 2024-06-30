@@ -78,6 +78,7 @@ sealed class CoroutineState {
                         return Complete(value, exception).from(this)
                     }
                 }
+                else -> {}
             }
             return CompleteWaitForChildren(value, exception, isCancelling).from(this).without(job)
         }
