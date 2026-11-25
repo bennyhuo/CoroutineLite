@@ -64,7 +64,6 @@ open class TestBase {
      * Throws [IllegalStateException] like `error` in stdlib, but also ensures that the test will not
      * complete successfully even if this exception is consumed somewhere in the test.
      */
-    @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
     fun error(message: Any, cause: Throwable? = null): Nothing {
         throw makeError(message, cause)
     }
@@ -180,7 +179,6 @@ open class TestBase {
 //        DefaultScheduler.restore()
     }
 
-    @Suppress("ACTUAL_WITHOUT_EXPECT", "ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
     fun runTest(
             expected: ((Throwable) -> Boolean)? = null,
             unhandled: List<(Throwable) -> Boolean> = emptyList(),
